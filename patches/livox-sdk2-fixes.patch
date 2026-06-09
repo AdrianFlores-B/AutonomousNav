@@ -1,0 +1,85 @@
+diff --git a/include/livox_lidar_def.h b/include/livox_lidar_def.h
+index 34e9a92..91aad2b 100644
+--- a/include/livox_lidar_def.h
++++ b/include/livox_lidar_def.h
+@@ -26,6 +26,7 @@
+ #define LIVOX_LIDAR_DEF_H_
+ 
+ #include <stdint.h>
++#include <cstdint>
+ 
+ #define kMaxLidarCount 32
+ 
+diff --git a/samples/livox_lidar_quick_start/mid360_config.json b/samples/livox_lidar_quick_start/mid360_config.json
+index 128ec5e..91ae837 100644
+--- a/samples/livox_lidar_quick_start/mid360_config.json
++++ b/samples/livox_lidar_quick_start/mid360_config.json
+@@ -9,8 +9,7 @@
+     },
+     "host_net_info" : [
+       {
+-        "host_ip"        : "192.168.1.5",
+-        "multicast_ip"   : "224.1.1.5",
++        "host_ip"        : "192.168.1.2",
+         "cmd_data_port"  : 56101,
+         "push_msg_port"  : 56201,
+         "point_data_port": 56301,
+diff --git a/sdk_core/base/multiple_io/multiple_io_epoll.cpp b/sdk_core/base/multiple_io/multiple_io_epoll.cpp
+index d5b709c..3b04cac 100644
+--- a/sdk_core/base/multiple_io/multiple_io_epoll.cpp
++++ b/sdk_core/base/multiple_io/multiple_io_epoll.cpp
+@@ -24,6 +24,7 @@
+ 
+ #include "multiple_io_epoll.h"
+ #ifdef HAVE_EPOLL
++
+ namespace livox {
+ namespace lidar {
+ 
+@@ -82,7 +83,8 @@ bool MultipleIOEpoll::PollSetRemove(PollFd poll_fd) {
+ }
+ 
+ void MultipleIOEpoll::Poll(int time_out) {
+-  int ret = epoll_wait(epoll_fd_, pollset_.get(), (int)descriptors_.size(),
++  int nfds = (int)descriptors_.size();
++  int ret = epoll_wait(epoll_fd_, pollset_.get(), nfds > 0 ? nfds : 1,
+                     time_out);
+   if (ret > 0) {
+     for (int i =0; i< ret; i++) {
+diff --git a/sdk_core/base/network/unix/network_util.cpp b/sdk_core/base/network/unix/network_util.cpp
+index 175b370..0df19bc 100644
+--- a/sdk_core/base/network/unix/network_util.cpp
++++ b/sdk_core/base/network/unix/network_util.cpp
+@@ -76,7 +76,7 @@ socket_t CreateSocket(uint16_t port, bool nonblock, bool reuse_port, bool is_bro
+ 
+   // Filling server information
+   servaddr.sin_family    = AF_INET; // IPv4
+-  if (netif.empty()) {
++  if (netif.empty() || netif == "255.255.255.255") {
+     servaddr.sin_addr.s_addr = INADDR_ANY;
+   } else {
+     if(!multicast_ip.empty()){
+diff --git a/sdk_core/comm/define.h b/sdk_core/comm/define.h
+index 0872328..708a2ca 100644
+--- a/sdk_core/comm/define.h
++++ b/sdk_core/comm/define.h
+@@ -26,6 +26,7 @@
+ #define LIVOX_DEFINE_H_
+ 
+ #include <stdio.h>
++#include <cstdint>
+ #include <string>
+ #include <memory>
+ #include <functional>
+diff --git a/sdk_core/logger_handler/file_manager.h b/sdk_core/logger_handler/file_manager.h
+index 242a431..d8a564a 100644
+--- a/sdk_core/logger_handler/file_manager.h
++++ b/sdk_core/logger_handler/file_manager.h
+@@ -25,6 +25,7 @@
+ #ifndef LIVOX_FILE_MANAGER_
+ #define LIVOX_FILE_MANAGER_
+ 
++#include <cstdint>
+ #include <string>
+ #include <vector>
+ #include <map>
