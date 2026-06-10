@@ -32,7 +32,7 @@ nav.LidarDriver (Python, ctypes)
     │  Thread-safe deque buffers (SDK callbacks → main thread)
     ▼
 Application layer
-    ├── scripts/live_viewer.py   — real-time Open3D 3D viewer
+    ├── scripts/live_viewer.py   — real-time Open3D 3D viewer + control panel
     ├── scripts/test_capture.py  — terminal stats + data validation
     └── (future: SLAM pipeline, navigation, recording)
 ```
@@ -50,8 +50,10 @@ AutonomousNav/
 │   ├── data_types.py             # ctypes structs + numpy dtypes matching SDK headers
 │   └── lidar_driver.py           # LidarDriver: wraps Livox-SDK2 via ctypes
 ├── scripts/
-│   ├── live_viewer.py            # Real-time 3D point cloud viewer (Open3D)
+│   ├── live_viewer.py            # Real-time 3D viewer with control panel
 │   └── test_capture.py           # Terminal-based data capture + stats
+├── docs/
+│   └── project-guide.md          # Detailed project guide with architecture diagrams
 ├── patches/
 │   └── livox-sdk2-fixes.patch    # Required patches for SDK2 (GCC 13+, bind fix)
 ├── Livox-SDK2/                   # Git submodule → github.com/Livox-SDK/Livox-SDK2
@@ -67,6 +69,7 @@ AutonomousNav/
 - Ubuntu 24.04 (or similar Linux with GCC 13+)
 - CMake 3.10+
 - Python 3.10+
+- `python3-tk` (for the control panel: `sudo apt install python3-tk`)
 - Livox Mid-360 connected via Ethernet
 
 ### 1. Clone the Repository
@@ -140,17 +143,51 @@ sudo .venv/bin/python3 -u scripts/test_capture.py
 
 Both scripts need `sudo` because the SDK uses raw sockets for device discovery.
 
-## Live Viewer Controls
+## Live Viewer
+
+The viewer renders the live point cloud in a 3D Open3D window alongside a tkinter control panel for spatial filtering and color mode selection.
+
+### Spatial Filtering
+
+Two filtering modes let you isolate regions of interest in the point cloud:
+
+**Sphere mode** — a single radius slider limits the maximum distance from the sensor. Useful for focusing on nearby objects and removing distant noise.
+
+**Box mode** — six independent sliders (X min, X max, Y min, Y max, Z min, Z max) define a rectangular prism. Useful for cropping the floor, ceiling, or isolating a specific corridor or room.
+
+| Sphere filter | Box filter |
+|:---:|:---:|
+| ![Sphere filter](docs/img/viewer_sphere.png) | ![Box filter](docs/img/viewer_box.png) |
+
+### Color Modes
+
+| Mode | Maps | Useful for |
+|------|------|------------|
+| **Height** | Z-axis → turbo colormap (blue=floor, red=ceiling) | Seeing structure: floors, walls, ceiling |
+| **Distance** | Euclidean distance from sensor → turbo (blue=near, red=far) | Gauging range, spotting distant objects |
+
+Switch color modes from the control panel or press **C** in the Open3D window.
+
+### Controls
 
 | Input | Action |
 |-------|--------|
 | Mouse drag | Rotate view |
 | Scroll wheel | Zoom in/out |
 | Ctrl + drag | Pan |
+| C | Cycle color mode (height / distance) |
 | R | Reset camera viewpoint |
 | Q / Esc | Quit |
 
-Points are colored by height (z-axis) using the turbo colormap: blue (floor) → green (mid) → red (ceiling). The RGB axes at the origin show the LiDAR coordinate frame (X = red, Y = green, Z = blue).
+### Control Panel
+
+The tkinter panel provides:
+
+- **Filter Mode** radio buttons (Sphere / Box)
+- **Radius** slider (0.5 – 50 m) for sphere mode
+- **X / Y / Z min/max** sliders for box mode (disabled sliders gray out when not active)
+- **Color Mode** radio buttons (Height / Distance)
+- **Stats** readout: buffer size, displayed points, point rate
 
 ## SDK Patches
 
@@ -166,8 +203,11 @@ The `patches/livox-sdk2-fixes.patch` file contains fixes required to build and r
 
 - [x] Native Livox-SDK2 data acquisition (point cloud + IMU)
 - [x] Real-time 3D point cloud visualization
+- [x] Spatial filtering (sphere and box modes with interactive sliders)
+- [x] Multiple color modes (height, distance)
 - [ ] Data recording and playback (binary format)
 - [ ] Orbbec Astra+ camera integration (RGB texturing)
+- [ ] LiDAR-camera extrinsic calibration
 - [ ] IMU pre-integration and bias estimation
 - [ ] Point cloud registration (ICP / feature-based)
 - [ ] Tightly-coupled LiDAR-Inertial odometry
